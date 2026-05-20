@@ -27,7 +27,7 @@ bool playSound(const char *filename, bool loop)
 
 	mmStreamClose();
 	stream.sampling_rate = mp3.sampleRate;
-    stream.buffer_length = DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME;
+    stream.buffer_length = (DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME*mp3.channels);
     stream.callback = streamCallback;
     stream.format = (mp3.channels > 1) ? MM_STREAM_16BIT_STEREO : MM_STREAM_16BIT_MONO;
     stream.timer = MM_TIMER3;
