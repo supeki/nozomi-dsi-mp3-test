@@ -9,4 +9,6 @@
 #include <maxmod9.h>
 #include <filesystem.h>
 
+void wait(int frames);
+
 #endif

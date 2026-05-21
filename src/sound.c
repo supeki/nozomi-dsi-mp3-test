@@ -7,7 +7,7 @@ drmp3dec dec;
 drmp3 mp3;
 mm_stream stream;
 
-static bool sound_playing = false;
+bool sound_playing = false;
 static bool sound_loop = false;
 
 bool initSound(void)
@@ -21,11 +21,15 @@ bool initSound(void)
 
 bool playSound(const char *filename, bool loop)
 {
+	if (sound_playing)
+		stopSound();
+	
 	if (!drmp3_init_file(&mp3, filename, NULL)) {
 		printf("Failed to load %s!\n", filename);
+		wait(60);
+		return false;
 	}
 
-	mmStreamClose();
 	stream.sampling_rate = mp3.sampleRate;
     stream.buffer_length = (DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME*mp3.channels);
     stream.callback = streamCallback;
@@ -34,26 +38,59 @@ bool playSound(const char *filename, bool loop)
     stream.manual = false;
 	mmStreamOpen(&stream);
 	
-	printf(
-		"sample rate: %d\n"\
-		"format: %s\n",
-		mp3.sampleRate,
-		(stream.format == MM_STREAM_16BIT_STEREO) ? "stereo" : "mono"
-	);
-	
 	sound_playing = true;
 	sound_loop = loop;
 	return true;
 }
 
-void freeSound(void)
+void stopSound(void)
 {
+	freeSound(&mp3);
+	sound_playing = false;
+	mmStreamClose();
+}
 
+bool sound_paused = false;
+
+void pauseSound(void)
+{
+	sound_paused = (!sound_paused);
+	
+	// hack since idk how to stream null audio
+	if (sound_paused)
+		mmStreamVolume(0);
+	else
+		mmStreamVolume(127);
+}
+
+void freeSound(void *ptr)
+{
+	drmp3_free(ptr, NULL);
+}
+
+int soundPosition()
+{
+	return mp3.currentPCMFrame;
+}
+
+int soundLength()
+{
+	return mp3.totalPCMFrameCount;
+}
+
+int soundRate()
+{
+	return mp3.sampleRate;
+}
+
+char *soundFormat()
+{
+	return (stream.format == MM_STREAM_16BIT_STEREO) ? "stereo" : "mono";
 }
 
 mm_word streamCallback(mm_word length, mm_addr dest, mm_stream_formats format)
 {	
-	if (!sound_playing) {
+	if (!sound_playing || sound_paused) {
 		memset(dest, 0, length);
 		return length;
 	}
@@ -67,6 +104,7 @@ mm_word streamCallback(mm_word length, mm_addr dest, mm_stream_formats format)
 			got = drmp3_read_pcm_frames_s16(&mp3, length, dest);
 		} else {
 			sound_playing = false;
+			freeSound(&mp3);
 			memset(dest, 0, length);
 			return length;
 		}
