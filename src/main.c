@@ -1,7 +1,4 @@
 #include "sound.h"
-#include <dirent.h>
-#include <sys/stat.h>
-#include <gl2d.h>
 
 char **pathes;
 char cwd[1024];
@@ -21,7 +18,7 @@ void openDirOrFile(const char *dirfile) {
 	getcwd(cwd, sizeof(cwd));
 	
 	if (stat(dirfile, &path_stat) != 0) {
-		printf("Invalid File/Directory: %s\n", dirfile);
+		printf("Invalid File/Directory:\n%s\n", dirfile);
 		wait(60);
 		return;
     }
@@ -72,7 +69,7 @@ void openDirOrFile(const char *dirfile) {
 	else if (playSound(dirfile, false)) // it's not a directory, try mp3 playback
 		return;
 		
-	printf("Invalid File/Directory: %s\n", dirfile);
+	printf("Invalid File/Directory:\n%s\n", dirfile);
 	wait(60);
 }
 
@@ -125,9 +122,9 @@ int main(int argv, const char *argc[])
 	bgSetPriority(1, 0);
 	glScreen2D();
 
-	if (!nitroFSInit(NULL))
+	if (!fatInitDefault())
     {
-		printf("Failed to initialize nitroFS!\n");
+		printf("Failed to initialize FAT!\n");
         while (1) {}
     }
 	
@@ -137,7 +134,6 @@ int main(int argv, const char *argc[])
     while (1) {
 		consoleSelect(&botscr);
 		consoleClear();
-		
 		
 		if (sound_playing)
 			handlePlayer();
@@ -151,6 +147,8 @@ int main(int argv, const char *argc[])
 			consoleSetCursor(&topscr, 0, 23);
 			printf("A: Select Option");
 		
+			consoleSelect(&topscr);
+			consoleClear();
 			handleMenu();
 		}
 		

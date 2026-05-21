@@ -24,7 +24,6 @@ GAME_ICON		:= icon.gif
 GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)
 NDS_NAME = $(EXEC_NAME).nds
 ELF_NAME = $(EXEC_NAME).elf
-NITROFSDIR := nitrofs
 DEFINES	:= -DARM9 -D__NDS__
 SPECS := $(BLOCKSDS)/sys/crts/ds_arm9.specs
 OPTS := $(OPTS) -I. -I$(BLOCKSDS)/libs/libnds/include -I$(BLOCKSDS)/libs/maxmod/include
@@ -57,9 +56,7 @@ OBJS := $(OBJS) \
 all: $(BIN_DIR)/$(NDS_NAME)
 
 # Include NitroFS directory!
-NDSTOOL_ARGS	:= -d $(NITROFSDIR)
-		
-$(BIN_DIR)/$(NDS_NAME): $(BIN_DIR)/$(ELF_NAME) $(NITROFSDIR)
+$(BIN_DIR)/$(NDS_NAME): $(BIN_DIR)/$(ELF_NAME)
 	@echo "  NDSTOOL $@"
 	$(BLOCKSDS)/tools/ndstool/ndstool -c $@ \
 		-7 $(ARM7ELF) -9 $(BIN_DIR)/$(ELF_NAME) \
