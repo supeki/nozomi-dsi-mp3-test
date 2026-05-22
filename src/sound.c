@@ -37,6 +37,7 @@ bool playSound(const char *filename, bool loop)
 		return false;
 	}
 
+	stopSound();
 	stream.sampling_rate = mp3.sampleRate;
     stream.buffer_length = (DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME*mp3.channels);
     stream.callback = streamCallback;
