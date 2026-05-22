@@ -26,7 +26,7 @@ void openDirOrFile(const char *dirfile) {
 	if (S_ISDIR(path_stat.st_mode))
 	{
 		if (strcmp(dirfile, "..") > 0) {
-			int nplen = sizeof(cwd) + (strlen(dirfile) + 1)*sizeof(char);
+			int nplen = sizeof(cwd) + strlen(dirfile)*sizeof(char);
 			char *newpath = malloc(nplen);
 			snprintf(newpath, nplen, "%s%s", cwd, dirfile);		
 			chdir(newpath);
@@ -58,8 +58,9 @@ void openDirOrFile(const char *dirfile) {
 		p = 0;
 		
 		while ((de = readdir(dr)) != NULL) {
-			pathes[p] = malloc(strlen(de->d_name));
+			pathes[p] = malloc(strlen(de->d_name)+1);
             strcpy(pathes[p], de->d_name); // copy the names tho
+			pathes[p][strlen(de->d_name)] = '\0';
 			p++;
 		}
 		
@@ -68,8 +69,10 @@ void openDirOrFile(const char *dirfile) {
 	}
 	else if (playSound(dirfile, false)) // it's not a directory, try mp3 playback
 		return;
+	else
+		stopSound();
 		
-	printf("Invalid File/Directory:\n%s\n", dirfile);
+	printf("Invalid File/Directory:\n%s!\n", dirfile);
 	wait(60);
 }
 

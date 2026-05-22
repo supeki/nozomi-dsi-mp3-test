@@ -29,6 +29,13 @@ bool playSound(const char *filename, bool loop)
 		wait(60);
 		return false;
 	}
+	
+	if (!isDSiMode() && (mp3.sampleRate > 11025 || mp3.channels > 1))
+	{
+		printf("Refused to load:\n%s\ndue to NDS limitations.\n\nTry using a DSi for\nmore intensive files!\n", filename);
+		wait(60);
+		return false;
+	}
 
 	stream.sampling_rate = mp3.sampleRate;
     stream.buffer_length = (DRMP3_MAX_PCM_FRAMES_PER_MP3_FRAME*mp3.channels);
@@ -70,12 +77,25 @@ void freeSound(void *ptr)
 
 int soundPosition()
 {
-	return mp3.currentPCMFrame;
+	if (mp3.totalPCMFrameCount == DRMP3_UINT64_MAX)
+		return mp3.currentPCMFrame/(sizeof(float)*2);
+	else
+		return mp3.currentPCMFrame;
 }
 
 int soundLength()
 {
-	return mp3.totalPCMFrameCount;
+	if (mp3.totalPCMFrameCount == DRMP3_UINT64_MAX) {
+		int len = mp3.streamLength - 4; // 4 bytes for header
+		
+		if (mp3.isVBR)
+			len -= 156; // VBR is specifically 156 bytes long
+		else
+			len -= 0; // figure out CBR in a bit
+		
+		return len; 
+	} else
+		return mp3.totalPCMFrameCount;
 }
 
 int soundRate()
