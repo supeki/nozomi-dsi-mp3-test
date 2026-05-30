@@ -13,7 +13,7 @@ void freeSound(void *ptr);
 int soundPosition(void);
 int soundLength(void);
 int soundRate(void);
-char *soundFormat(void);
+const char *soundFormat(void);
 void pauseSound(void);
 
 mm_word streamCallback(mm_word length, mm_addr dest, mm_stream_formats format);

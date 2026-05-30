@@ -104,7 +104,7 @@ int soundRate()
 	return mp3.sampleRate;
 }
 
-char *soundFormat()
+const char *soundFormat()
 {
 	return (stream.format == MM_STREAM_16BIT_STEREO) ? "stereo" : "mono";
 }

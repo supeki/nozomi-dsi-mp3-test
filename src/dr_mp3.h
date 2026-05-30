@@ -79,33 +79,14 @@ extern "C" {
 
 /* Sized Types */
 typedef   signed char           drmp3_int8;
-typedef unsigned char           drmp3_uint8;
-typedef   signed short          drmp3_int16;
-typedef unsigned short          drmp3_uint16;
-typedef   signed int            drmp3_int32;
-typedef unsigned int            drmp3_uint32;
-#if defined(_MSC_VER) && !defined(__clang__)
-    typedef   signed __int64    drmp3_int64;
-    typedef unsigned __int64    drmp3_uint64;
-#else
-    #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wlong-long"
-        #if defined(__clang__)
-            #pragma GCC diagnostic ignored "-Wc++11-long-long"
-        #endif
-    #endif
-    typedef   signed long long  drmp3_int64;
-    typedef unsigned long long  drmp3_uint64;
-    #if defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)))
-        #pragma GCC diagnostic pop
-    #endif
-#endif
-#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__)) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__powerpc64__)
-    typedef drmp3_uint64        drmp3_uintptr;
-#else
-    typedef drmp3_uint32        drmp3_uintptr;
-#endif
+typedef   uint8_t               drmp3_uint8;
+typedef   int16_t               drmp3_int16;
+typedef   uint16_t              drmp3_uint16;
+typedef   int32_t               drmp3_int32;
+typedef   uint32_t              drmp3_uint32;
+typedef   int64_t       	    drmp3_int64;
+typedef   uint64_t     	        drmp3_uint64;
+typedef drmp3_uint32            drmp3_uintptr;
 typedef drmp3_uint8             drmp3_bool8;
 typedef drmp3_uint32            drmp3_bool32;
 #define DRMP3_TRUE              1
@@ -4122,52 +4103,6 @@ DRMP3_API void drmp3_uninit(drmp3* pMP3)
     drmp3__free_from_callbacks(pMP3->pData, &pMP3->allocationCallbacks);
 }
 
-#if defined(DR_MP3_FLOAT_OUTPUT)
-static void drmp3_f32_to_s16(drmp3_int16* dst, const float* src, drmp3_uint64 sampleCount)
-{
-    drmp3_uint64 i;
-    drmp3_uint64 i4;
-    drmp3_uint64 sampleCount4;
-
-    /* Unrolled. */
-    i = 0;
-    sampleCount4 = sampleCount >> 2;
-    for (i4 = 0; i4 < sampleCount4; i4 += 1) {
-        float x0 = src[i+0];
-        float x1 = src[i+1];
-        float x2 = src[i+2];
-        float x3 = src[i+3];
-
-        x0 = ((x0 < -1) ? -1 : ((x0 > 1) ? 1 : x0));
-        x1 = ((x1 < -1) ? -1 : ((x1 > 1) ? 1 : x1));
-        x2 = ((x2 < -1) ? -1 : ((x2 > 1) ? 1 : x2));
-        x3 = ((x3 < -1) ? -1 : ((x3 > 1) ? 1 : x3));
-
-        x0 = x0 * 32767.0f;
-        x1 = x1 * 32767.0f;
-        x2 = x2 * 32767.0f;
-        x3 = x3 * 32767.0f;
-
-        dst[i+0] = (drmp3_int16)x0;
-        dst[i+1] = (drmp3_int16)x1;
-        dst[i+2] = (drmp3_int16)x2;
-        dst[i+3] = (drmp3_int16)x3;
-
-        i += 4;
-    }
-
-    /* Leftover. */
-    for (; i < sampleCount; i += 1) {
-        float x = src[i];
-        x = ((x < -1) ? -1 : ((x > 1) ? 1 : x));    /* clip */
-        x = x * 32767.0f;                           /* -1..1 to -32767..32767 */
-
-        dst[i] = (drmp3_int16)x;
-    }
-}
-#endif
-
-#if !defined(DR_MP3_FLOAT_OUTPUT)
 static void drmp3_s16_to_f32(float* dst, const drmp3_int16* src, drmp3_uint64 sampleCount)
 {
     drmp3_uint64 i;
@@ -4177,8 +4112,6 @@ static void drmp3_s16_to_f32(float* dst, const drmp3_int16* src, drmp3_uint64 sa
         dst[i] = x;
     }
 }
-#endif
-
 
 static drmp3_uint64 drmp3_read_pcm_frames_raw(drmp3* pMP3, drmp3_uint64 framesToRead, void* pBufferOut)
 {
@@ -4215,21 +4148,9 @@ static drmp3_uint64 drmp3_read_pcm_frames_raw(drmp3* pMP3, drmp3_uint64 framesTo
         }
 
         if (pBufferOut != NULL) {
-            #if defined(DR_MP3_FLOAT_OUTPUT)
-            {
-                /* f32 */
-                float* pFramesOutF32 = (float*)DRMP3_OFFSET_PTR(pBufferOut,          sizeof(float) * totalFramesRead                   * pMP3->channels);
-                float* pFramesInF32  = (float*)DRMP3_OFFSET_PTR(&pMP3->pcmFrames[0], sizeof(float) * pMP3->pcmFramesConsumedInMP3Frame * pMP3->mp3FrameChannels);
-                DRMP3_COPY_MEMORY(pFramesOutF32, pFramesInF32, sizeof(float) * framesToConsume * pMP3->channels);
-            }
-            #else
-            {
-                /* s16 */
-                drmp3_int16* pFramesOutS16 = (drmp3_int16*)DRMP3_OFFSET_PTR(pBufferOut,          sizeof(drmp3_int16) * totalFramesRead                   * pMP3->channels);
-                drmp3_int16* pFramesInS16  = (drmp3_int16*)DRMP3_OFFSET_PTR(&pMP3->pcmFrames[0], sizeof(drmp3_int16) * pMP3->pcmFramesConsumedInMP3Frame * pMP3->mp3FrameChannels);
-                DRMP3_COPY_MEMORY(pFramesOutS16, pFramesInS16, sizeof(drmp3_int16) * framesToConsume * pMP3->channels);
-            }
-            #endif
+			drmp3_int16* pFramesOutS16 = (drmp3_int16*)DRMP3_OFFSET_PTR(pBufferOut,          sizeof(drmp3_int16) * totalFramesRead                   * pMP3->channels);
+			drmp3_int16* pFramesInS16  = (drmp3_int16*)DRMP3_OFFSET_PTR(&pMP3->pcmFrames[0], sizeof(drmp3_int16) * pMP3->pcmFramesConsumedInMP3Frame * pMP3->mp3FrameChannels);
+			DRMP3_COPY_MEMORY(pFramesOutS16, pFramesInS16, sizeof(drmp3_int16) * framesToConsume * pMP3->channels);
         }
 
         pMP3->currentPCMFrame              += framesToConsume;
@@ -4302,35 +4223,8 @@ DRMP3_API drmp3_uint64 drmp3_read_pcm_frames_s16(drmp3* pMP3, drmp3_uint64 frame
         return 0;
     }
 
-#if !defined(DR_MP3_FLOAT_OUTPUT)
     /* Fast path. No conversion required. */
     return drmp3_read_pcm_frames_raw(pMP3, framesToRead, pBufferOut);
-#else
-    /* Slow path. Convert from f32 to s16. */
-    {
-        float pTempF32[1152*2];   /* MP3 frames have a maximum per-channel sample count of 1152. Times 2 to account for stereo. */
-        drmp3_uint64 totalPCMFramesRead = 0;
-
-        while (totalPCMFramesRead < framesToRead) {
-            drmp3_uint64 framesJustRead;
-            drmp3_uint64 framesRemaining = framesToRead - totalPCMFramesRead;
-            drmp3_uint64 framesToReadNow = DRMP3_COUNTOF(pTempF32) / pMP3->channels;
-            if (framesToReadNow > framesRemaining) {
-                framesToReadNow = framesRemaining;
-            }
-
-            framesJustRead = drmp3_read_pcm_frames_raw(pMP3, framesToReadNow, pTempF32);
-            if (framesJustRead == 0) {
-                break;
-            }
-
-            drmp3_f32_to_s16((drmp3_int16*)DRMP3_OFFSET_PTR(pBufferOut, sizeof(drmp3_int16) * totalPCMFramesRead * pMP3->channels), pTempF32, framesJustRead * pMP3->channels);
-            totalPCMFramesRead += framesJustRead;
-        }
-
-        return totalPCMFramesRead;
-    }
-#endif
 }
 
 static void drmp3_reset(drmp3* pMP3)
@@ -4370,11 +4264,9 @@ static drmp3_bool32 drmp3_seek_forward_by_pcm_frames__brute_force(drmp3* pMP3, d
     frames without spending the time doing a full decode. I cannot see an easy way to do this in minimp3, however, so it may involve some
     kind of manual processing.
     */
-#if defined(DR_MP3_FLOAT_OUTPUT)
-    framesRead = drmp3_read_pcm_frames_f32(pMP3, frameOffset, NULL);
-#else
+
     framesRead = drmp3_read_pcm_frames_s16(pMP3, frameOffset, NULL);
-#endif
+
     if (framesRead != frameOffset) {
         return DRMP3_FALSE;
     }
